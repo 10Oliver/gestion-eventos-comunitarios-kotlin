@@ -27,3 +27,4 @@ local.properties
 
 # Copilot/agent skills (project local)
 .agents/skills/
+skill-lock.json
