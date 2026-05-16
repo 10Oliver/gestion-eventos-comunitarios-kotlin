@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Aplicación de Gestión de Eventos Comunitarios"
+rootProject.name = "My Application EventosComunitarios"
 include(":app")

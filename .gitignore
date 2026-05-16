@@ -1,30 +1,15 @@
-# OS files
-.DS_Store
-Thumbs.db
-
-# IntelliJ / Android Studio
 *.iml
-.idea/caches/
-.idea/libraries/
-.idea/modules.xml
-.idea/workspace.xml
-.idea/navEditor.xml
-.idea/assetWizardSettings.xml
-.idea/shelf/
-.idea/httpRequests/
-
-# Gradle and build outputs
-.gradle/
-**/build/
-captures/
-.externalNativeBuild/
-.cxx/
-out/
-*.class
-
-# Local machine configuration
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
 local.properties
-
-# Copilot/agent skills (project local)
-.agents/skills/
-skills-lock.json
