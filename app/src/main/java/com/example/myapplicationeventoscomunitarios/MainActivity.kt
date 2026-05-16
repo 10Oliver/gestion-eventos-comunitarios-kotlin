@@ -2,10 +2,11 @@ package com.example.myapplicationeventoscomunitarios
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +26,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplicationeventoscomunitarios.auth.AuthViewModel
 import com.example.myapplicationeventoscomunitarios.screens.CommentsScreen
 import com.example.myapplicationeventoscomunitarios.screens.CreateEventScreen
 import com.example.myapplicationeventoscomunitarios.screens.EventDetailScreen
@@ -33,6 +38,7 @@ import com.example.myapplicationeventoscomunitarios.screens.LoginScreen
 import com.example.myapplicationeventoscomunitarios.screens.RegisterScreen
 import com.example.myapplicationeventoscomunitarios.screens.StatsScreen
 import com.example.myapplicationeventoscomunitarios.ui.theme.MyApplicationEventosComunitariosTheme
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 enum class Screen {
@@ -49,15 +55,56 @@ class MainActivity : ComponentActivity() {
             val systemDark = isSystemInDarkTheme()
             var isDarkTheme by remember { mutableStateOf(systemDark) }
 
-            MyApplicationEventosComunitariosTheme(darkTheme = isDarkTheme) {
-                var currentScreen by remember { mutableStateOf(Screen.Login) }
-                val snackbarHostState = remember { SnackbarHostState() }
-                val scope = rememberCoroutineScope()
+            val authViewModel: AuthViewModel = viewModel()
+            val user by authViewModel.currentUser.collectAsStateWithLifecycle()
+            val authBusy by authViewModel.authBusy.collectAsStateWithLifecycle()
+            val authSnackbar by authViewModel.snackbarMessage.collectAsStateWithLifecycle()
 
-                val showSnackbar: (String) -> Unit = { msg ->
-                    scope.launch { snackbarHostState.showSnackbar(msg) }
+            val initialSignedIn = remember { FirebaseAuth.getInstance().currentUser != null }
+            var currentScreen by remember {
+                mutableStateOf(if (initialSignedIn) Screen.Home else Screen.Login)
+            }
+            var wasSignedIn by remember { mutableStateOf(initialSignedIn) }
+
+            val snackbarHostState = remember { SnackbarHostState() }
+            val scope = rememberCoroutineScope()
+
+            val showSnackbar: (String) -> Unit = { msg ->
+                scope.launch { snackbarHostState.showSnackbar(msg) }
+            }
+
+            val googleLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                authViewModel.onGoogleSignInResult(result.data)
+            }
+
+            LaunchedEffect(user) {
+                val signedIn = user != null
+                if (wasSignedIn && !signedIn) {
+                    currentScreen = Screen.Login
                 }
+                wasSignedIn = signedIn
+            }
 
+            LaunchedEffect(user?.uid) {
+                if (user != null) {
+                    if (currentScreen == Screen.Login || currentScreen == Screen.Register) {
+                        currentScreen = Screen.Home
+                    }
+                }
+            }
+
+            LaunchedEffect(authSnackbar) {
+                val msg = authSnackbar ?: return@LaunchedEffect
+                snackbarHostState.showSnackbar(msg)
+                authViewModel.clearSnackbarMessage()
+            }
+
+            val userDisplayName = user?.displayName?.takeIf { it.isNotBlank() }
+                ?: user?.email?.substringBefore("@").orEmpty()
+
+            MyApplicationEventosComunitariosTheme(darkTheme = isDarkTheme) {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -66,13 +113,7 @@ class MainActivity : ComponentActivity() {
                     AnimatedContent(
                         targetState = currentScreen,
                         transitionSpec = {
-                            val direction = if (targetState.ordinal > initialState.ordinal) {
-                                AnimatedContentTransitionScope.SlideDirection.Left
-                            } else {
-                                AnimatedContentTransitionScope.SlideDirection.Right
-                            }
-                            (slideIntoContainer(direction, tween(280)) + fadeIn(tween(280))) togetherWith
-                                (slideOutOfContainer(direction, tween(280)) + fadeOut(tween(280)))
+                            fadeIn(tween(280)) togetherWith fadeOut(tween(280))
                         },
                         label = "screen-transition"
                     ) { screen ->
@@ -81,23 +122,46 @@ class MainActivity : ComponentActivity() {
                             Screen.Login -> LoginScreen(
                                 modifier = mod,
                                 onRegisterClick = { currentScreen = Screen.Register },
-                                onLoginClick = { currentScreen = Screen.Home }
+                                onSignInWithEmail = { email, password ->
+                                    authViewModel.signInWithEmail(email, password)
+                                },
+                                onGoogleSignInClick = {
+                                    googleLauncher.launch(authViewModel.googleSignInIntent())
+                                },
+                                isAuthBusy = authBusy,
+                                onValidationError = showSnackbar
                             )
 
                             Screen.Register -> RegisterScreen(
                                 modifier = mod,
                                 onBackToLoginClick = { currentScreen = Screen.Login },
-                                onRegisterSuccess = { currentScreen = Screen.Home }
+                                onRegisterSubmit = { fullName, email, password ->
+                                    authViewModel.registerWithFullNameEmailPassword(
+                                        fullName,
+                                        email,
+                                        password
+                                    )
+                                },
+                                onGoogleSignInClick = {
+                                    googleLauncher.launch(authViewModel.googleSignInIntent())
+                                },
+                                isAuthBusy = authBusy,
+                                onValidationError = showSnackbar
                             )
 
                             Screen.Home -> HomeScreen(
                                 modifier = mod,
+                                userDisplayName = userDisplayName,
                                 onCreateEventClick = { currentScreen = Screen.CreateEvent },
                                 onEventClick = { currentScreen = Screen.EventDetail },
                                 onHistoryClick = { currentScreen = Screen.History },
                                 onStatsClick = { currentScreen = Screen.Stats },
                                 isDarkTheme = isDarkTheme,
-                                onToggleTheme = { isDarkTheme = !isDarkTheme }
+                                onToggleTheme = { isDarkTheme = !isDarkTheme },
+                                onSignOut = {
+                                    authViewModel.signOut()
+                                    currentScreen = Screen.Login
+                                }
                             )
 
                             Screen.CreateEvent -> CreateEventScreen(

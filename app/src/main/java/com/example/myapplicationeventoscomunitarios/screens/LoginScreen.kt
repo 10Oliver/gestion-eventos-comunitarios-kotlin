@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Login
+import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,8 +25,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.AppTextField
 import com.example.myapplicationeventoscomunitarios.components.MainButton
+import com.example.myapplicationeventoscomunitarios.components.SecondaryButton
 import com.example.myapplicationeventoscomunitarios.ui.theme.AppTheme
 import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
 
@@ -32,9 +37,12 @@ import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
 fun LoginScreen(
     modifier: Modifier = Modifier,
     onRegisterClick: () -> Unit = {},
-    onLoginClick: () -> Unit = {}
+    onSignInWithEmail: (email: String, password: String) -> Unit = { _, _ -> },
+    onGoogleSignInClick: () -> Unit = {},
+    isAuthBusy: Boolean = false,
+    onValidationError: (String) -> Unit = {},
 ) {
-    var userName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val colors = AppTheme.colors
 
@@ -63,10 +71,12 @@ fun LoginScreen(
         Spacer(Modifier.height(Spacing.huge * 2))
 
         AppTextField(
-            value = userName,
-            onValueChange = { userName = it },
-            label = "Nombre de usuario",
-            leadingIcon = Icons.Outlined.Person
+            value = email,
+            onValueChange = { email = it },
+            label = "Correo electrónico",
+            leadingIcon = Icons.Outlined.AlternateEmail,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -76,15 +86,48 @@ fun LoginScreen(
             onValueChange = { password = it },
             label = "Contraseña",
             isPassword = true,
-            leadingIcon = Icons.Outlined.Lock
+            leadingIcon = Icons.Outlined.Lock,
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.huge))
 
         MainButton(
             text = "Iniciar sesión",
-            onClick = onLoginClick,
-            leadingIcon = Icons.AutoMirrored.Outlined.Login
+            onClick = {
+                if (email.isBlank()) {
+                    onValidationError("Ingresa tu correo electrónico.")
+                    return@MainButton
+                }
+                if (password.isBlank()) {
+                    onValidationError("Ingresa tu contraseña.")
+                    return@MainButton
+                }
+                onSignInWithEmail(email.trim(), password)
+            },
+            leadingIcon = Icons.AutoMirrored.Outlined.Login,
+            enabled = !isAuthBusy
+        )
+
+        Spacer(Modifier.height(Spacing.lg))
+
+        HorizontalDivider(color = colors.divider, thickness = 1.dp)
+
+        Spacer(Modifier.height(Spacing.lg))
+
+        Text(
+            text = "O continúa con",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+
+        Spacer(Modifier.height(Spacing.md))
+
+        SecondaryButton(
+            text = "Continuar con Google",
+            onClick = onGoogleSignInClick,
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -99,7 +142,7 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textSecondary
             )
-            TextButton(onClick = onRegisterClick) {
+            TextButton(onClick = onRegisterClick, enabled = !isAuthBusy) {
                 Text(
                     text = "Regístrate",
                     style = MaterialTheme.typography.bodyMedium,

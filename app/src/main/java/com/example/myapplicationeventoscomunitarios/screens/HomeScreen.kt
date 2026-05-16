@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.History
@@ -109,12 +110,14 @@ private val sampleEvents = listOf(
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    userDisplayName: String = "",
     onCreateEventClick: () -> Unit = {},
     onEventClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
     isDarkTheme: Boolean = true,
-    onToggleTheme: () -> Unit = {}
+    onToggleTheme: () -> Unit = {},
+    onSignOut: () -> Unit = {}
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -152,8 +155,10 @@ fun HomeScreen(
             ) {
                 item {
                     HomeHeader(
+                        userDisplayName = userDisplayName,
                         isDarkTheme = isDarkTheme,
-                        onToggleTheme = onToggleTheme
+                        onToggleTheme = onToggleTheme,
+                        onSignOut = onSignOut
                     )
                 }
                 item { Spacer(Modifier.height(Spacing.xxl)) }
@@ -215,10 +220,13 @@ fun HomeScreen(
 
 @Composable
 private fun HomeHeader(
+    userDisplayName: String,
     isDarkTheme: Boolean,
-    onToggleTheme: () -> Unit
+    onToggleTheme: () -> Unit,
+    onSignOut: () -> Unit
 ) {
     val colors = AppTheme.colors
+    val greetingName = userDisplayName.ifBlank { "Invitado" }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -237,9 +245,16 @@ private fun HomeHeader(
                 color = colors.textPrimary
             )
             Text(
-                text = "nombre usuario",
+                text = greetingName,
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textSecondary
+            )
+        }
+        IconButton(onClick = onSignOut) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.Logout,
+                contentDescription = "Cerrar sesión",
+                tint = colors.primary
             )
         }
         IconButton(onClick = onToggleTheme) {
