@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.HistoryToggleOff
@@ -30,30 +29,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.AppTopBar
 import com.example.myapplicationeventoscomunitarios.components.SectionTitle
+import com.example.myapplicationeventoscomunitarios.events.HistoryEventRowUi
 import com.example.myapplicationeventoscomunitarios.ui.theme.AppTheme
 import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
-
-private data class HistoryUi(
-    val title: String,
-    val date: String,
-    val status: String,
-    val attended: Boolean
-)
-
-private val attendedEvents = listOf(
-    HistoryUi("Jornada de limpieza", "20 de mayo de 2026", "Asistencia confirmada", true),
-    HistoryUi("Reunión comunitaria", "18 de mayo de 2026", "Participaste", true)
-)
-
-private val pastEvents = listOf(
-    HistoryUi("Campaña de donación", "12 de mayo de 2026", "Finalizado", false),
-    HistoryUi("Torneo deportivo", "05 de mayo de 2026", "Finalizado", false)
-)
 
 @Composable
 fun HistoryScreen(
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {}
+    upcomingAttendances: List<HistoryEventRowUi> = emptyList(),
+    pastAttendances: List<HistoryEventRowUi> = emptyList(),
+    isSignedIn: Boolean = false,
+    onBackClick: () -> Unit = {},
+    onEventClick: (String) -> Unit = {},
 ) {
     val colors = AppTheme.colors
     Scaffold(
@@ -71,41 +58,67 @@ fun HistoryScreen(
             Spacer(Modifier.height(Spacing.lg))
 
             Text(
-                text = "Eventos pasados y asistencias registradas",
+                text = "Eventos en los que marcaste participación",
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.textSecondary
             )
 
             Spacer(Modifier.height(Spacing.xxl))
 
-            SectionTitle("Eventos asistidos")
+            SectionTitle("Próximas asistencias")
 
             Spacer(Modifier.height(Spacing.md))
 
-            attendedEvents.forEach { item ->
-                HistoryItem(
-                    title = item.title,
-                    date = item.date,
-                    status = item.status,
-                    statusIcon = Icons.Outlined.CheckCircle
+            if (!isSignedIn) {
+                Text(
+                    text = "Inicia sesión para ver tu historial.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textMuted
                 )
-                Spacer(Modifier.height(Spacing.md))
+            } else if (upcomingAttendances.isEmpty()) {
+                Text(
+                    text = "No tienes eventos próximos con asistencia marcada.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textMuted
+                )
+            } else {
+                upcomingAttendances.forEach { item ->
+                    HistoryItem(
+                        title = item.title,
+                        date = item.dateLabel,
+                        status = item.statusLabel,
+                        statusIcon = Icons.Outlined.CheckCircle,
+                        onClick = { onEventClick(item.eventId) }
+                    )
+                    Spacer(Modifier.height(Spacing.md))
+                }
             }
 
             Spacer(Modifier.height(Spacing.lg))
 
-            SectionTitle("Eventos pasados")
+            SectionTitle("Asistencias pasadas")
 
             Spacer(Modifier.height(Spacing.md))
 
-            pastEvents.forEach { item ->
-                HistoryItem(
-                    title = item.title,
-                    date = item.date,
-                    status = item.status,
-                    statusIcon = Icons.Outlined.HistoryToggleOff
+            if (!isSignedIn) {
+                Spacer(Modifier.height(Spacing.xs))
+            } else if (pastAttendances.isEmpty()) {
+                Text(
+                    text = "No hay asistencias pasadas registradas.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textMuted
                 )
-                Spacer(Modifier.height(Spacing.md))
+            } else {
+                pastAttendances.forEach { item ->
+                    HistoryItem(
+                        title = item.title,
+                        date = item.dateLabel,
+                        status = item.statusLabel,
+                        statusIcon = Icons.Outlined.HistoryToggleOff,
+                        onClick = { onEventClick(item.eventId) }
+                    )
+                    Spacer(Modifier.height(Spacing.md))
+                }
             }
 
             Spacer(Modifier.height(Spacing.xxl))
@@ -118,10 +131,12 @@ private fun HistoryItem(
     title: String,
     date: String,
     status: String,
-    statusIcon: ImageVector
+    statusIcon: ImageVector,
+    onClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)

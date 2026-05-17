@@ -22,14 +22,18 @@ service cloud.firestore {
 
       match /participants/{uid} {
         allow read: if signedIn();
-        allow create, delete: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.participantUid == request.auth.uid;
+        allow delete: if signedIn() && request.auth.uid == uid;
       }
 
       match /reviews/{uid} {
         allow read: if signedIn();
         allow create, update: if signedIn()
           && request.auth.uid == uid
-          && participantDocExists(eventId, uid);
+          && participantDocExists(eventId, uid)
+          && request.resource.data.reviewerUid == request.auth.uid;
         allow delete: if signedIn() && request.auth.uid == uid;
       }
     }

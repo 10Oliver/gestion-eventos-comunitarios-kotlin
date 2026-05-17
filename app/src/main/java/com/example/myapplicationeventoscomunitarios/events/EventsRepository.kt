@@ -1,5 +1,6 @@
 package com.example.myapplicationeventoscomunitarios.events
 
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -8,6 +9,9 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 
 class EventsRepository(
@@ -67,6 +71,53 @@ class EventsRepository(
         awaitClose { reg.remove() }
     }
 
+    /**
+     * IDs of events in [eventIds] where `participants/{uid}` exists (works with legacy docs without [FIELD_PARTICIPANT_UID]).
+     */
+    suspend fun fetchParticipatedEventIdsForUser(uid: String, eventIds: List<String>): Set<String> = coroutineScope {
+        if (uid.isEmpty()) return@coroutineScope emptySet()
+        eventIds.distinct().chunked(PARTICIPANT_COUNT_CONCURRENCY).flatMap { chunk ->
+            chunk.map { eventId ->
+                async {
+                    val snap = eventsCollection().document(eventId).collection(COLLECTION_PARTICIPANTS).document(uid).get().await()
+                    if (snap.exists()) eventId else null
+                }
+            }.awaitAll().filterNotNull()
+        }.toSet()
+    }
+
+    /**
+     * Review docs `reviews/{uid}` for known [eventIds] (legacy-safe).
+     */
+    suspend fun fetchMyReviewDocumentsForUser(uid: String, eventIds: List<String>): List<DocumentSnapshot> = coroutineScope {
+        if (uid.isEmpty()) return@coroutineScope emptyList()
+        eventIds.distinct().chunked(PARTICIPANT_COUNT_CONCURRENCY).flatMap { chunk ->
+            chunk.map { eventId ->
+                async {
+                    eventsCollection().document(eventId).collection(COLLECTION_REVIEWS).document(uid).get().await()
+                }
+            }.awaitAll().filter { it.exists() }
+        }
+    }
+
+    suspend fun fetchParticipantCountsForEventIds(eventIds: List<String>): Map<String, Int> = coroutineScope {
+        val distinct = eventIds.distinct()
+        val pairs = mutableListOf<Pair<String, Int>>()
+        for (chunk in distinct.chunked(PARTICIPANT_COUNT_CONCURRENCY)) {
+            pairs += chunk.map { id ->
+                async {
+                    val size = eventsCollection().document(id).collection(COLLECTION_PARTICIPANTS).get().await().documents.size
+                    id to size
+                }
+            }.awaitAll()
+        }
+        pairs.toMap()
+    }
+
+    suspend fun deleteReview(eventId: String, uid: String) {
+        eventsCollection().document(eventId).collection(COLLECTION_REVIEWS).document(uid).delete().await()
+    }
+
     suspend fun createEvent(
         title: String,
         description: String,
@@ -115,7 +166,12 @@ class EventsRepository(
     suspend fun setParticipating(eventId: String, uid: String, participating: Boolean) {
         val ref = eventsCollection().document(eventId).collection(COLLECTION_PARTICIPANTS).document(uid)
         if (participating) {
-            ref.set(hashMapOf("joinedAt" to FieldValue.serverTimestamp())).await()
+            ref.set(
+                hashMapOf(
+                    FIELD_PARTICIPANT_UID to uid,
+                    "joinedAt" to FieldValue.serverTimestamp(),
+                ),
+            ).await()
         } else {
             ref.delete().await()
             val review = eventsCollection().document(eventId).collection(COLLECTION_REVIEWS).document(uid)
@@ -131,6 +187,7 @@ class EventsRepository(
         rating: Int,
     ) {
         val data = hashMapOf(
+            FIELD_REVIEWER_UID to uid,
             "text" to text.trim(),
             "rating" to rating.toLong(),
             "authorName" to authorName.trim(),
@@ -165,5 +222,10 @@ class EventsRepository(
         private const val COLLECTION_PARTICIPANTS = "participants"
         private const val COLLECTION_REVIEWS = "reviews"
         private const val MAX_BATCH_OPS = 450
+        private const val PARTICIPANT_COUNT_CONCURRENCY = 10
+
+        /** For collectionGroup queries (documentId cannot be used with only uid). */
+        internal const val FIELD_PARTICIPANT_UID = "participantUid"
+        internal const val FIELD_REVIEWER_UID = "reviewerUid"
     }
 }

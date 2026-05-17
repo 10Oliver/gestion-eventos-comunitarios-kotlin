@@ -144,6 +144,9 @@ class MainActivity : ComponentActivity() {
             val homeCards by eventsViewModel.homeCards.collectAsStateWithLifecycle()
             val saving by eventsViewModel.saving.collectAsStateWithLifecycle()
             val actionBusy by eventsViewModel.actionBusy.collectAsStateWithLifecycle()
+            val historyUpcoming by eventsViewModel.historyUpcoming.collectAsStateWithLifecycle()
+            val historyPast by eventsViewModel.historyPast.collectAsStateWithLifecycle()
+            val statsUi by eventsViewModel.statsUi.collectAsStateWithLifecycle()
 
             MyApplicationEventosComunitariosTheme(darkTheme = isDarkTheme) {
                 Scaffold(
@@ -313,23 +316,34 @@ class MainActivity : ComponentActivity() {
                                         .collectAsStateWithLifecycle(initialValue = false)
                                     val reviews by eventsViewModel.observeReviews(route.eventId)
                                         .collectAsStateWithLifecycle(initialValue = emptyList())
+                                    val myReview = reviews.find { it.uid == uid }
                                     CommentsScreen(
                                         modifier = mod,
                                         eventTitle = route.eventTitle,
                                         hasParticipated = participating,
+                                        myReview = myReview,
                                         reviews = reviews,
                                         isPublishing = actionBusy,
                                         onBackClick = { currentRoute = AppRoute.EventDetail(route.eventId) },
-                                        onPublish = { text, rating, onDone ->
+                                        onSubmitReview = { text, rating, onDone ->
                                             eventsViewModel.publishReview(
                                                 eventId = route.eventId,
                                                 text = text,
                                                 rating = rating,
                                                 onSuccess = {
-                                                    showSnackbar("Comentario publicado")
+                                                    showSnackbar(
+                                                        if (myReview != null) "Comentario actualizado"
+                                                        else "Comentario publicado"
+                                                    )
                                                     onDone()
                                                 }
                                             )
+                                        },
+                                        onDeleteReview = { onDone ->
+                                            eventsViewModel.deleteReview(route.eventId) {
+                                                showSnackbar("Comentario eliminado")
+                                                onDone()
+                                            }
                                         },
                                         onValidationError = showSnackbar
                                     )
@@ -337,12 +351,18 @@ class MainActivity : ComponentActivity() {
 
                                 AppRoute.History -> HistoryScreen(
                                     modifier = mod,
-                                    onBackClick = { currentRoute = AppRoute.Home }
+                                    isSignedIn = user != null,
+                                    upcomingAttendances = historyUpcoming,
+                                    pastAttendances = historyPast,
+                                    onBackClick = { currentRoute = AppRoute.Home },
+                                    onEventClick = { id -> currentRoute = AppRoute.EventDetail(id) }
                                 )
 
                                 AppRoute.Stats -> StatsScreen(
                                     modifier = mod,
-                                    onBackClick = { currentRoute = AppRoute.Home }
+                                    stats = statsUi,
+                                    onBackClick = { currentRoute = AppRoute.Home },
+                                    onTopEventClick = { id -> currentRoute = AppRoute.EventDetail(id) }
                                 )
                             }
                         }
