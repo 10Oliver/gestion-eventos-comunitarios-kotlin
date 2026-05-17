@@ -21,7 +21,8 @@ fun StarRating(
     rating: Int,
     onRatingChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    starSize: Dp = 36.dp
+    starSize: Dp = 36.dp,
+    enabled: Boolean = true,
 ) {
     val colors = AppTheme.colors
     Row(
@@ -36,7 +37,13 @@ fun StarRating(
                 tint = if (selected) colors.primary else colors.textMuted,
                 modifier = Modifier
                     .size(starSize)
-                    .clickable(role = Role.Button) { onRatingChange(index) }
+                    .then(
+                        if (enabled) {
+                            Modifier.clickable(role = Role.Button) { onRatingChange(index) }
+                        } else {
+                            Modifier
+                        }
+                    )
             )
         }
     }

@@ -30,6 +30,7 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.AppTextField
 import com.example.myapplicationeventoscomunitarios.components.AppTopBar
 import com.example.myapplicationeventoscomunitarios.components.MainButton
+import com.example.myapplicationeventoscomunitarios.events.Event
 import com.example.myapplicationeventoscomunitarios.ui.theme.AppTheme
 import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
 import java.text.SimpleDateFormat
@@ -51,8 +53,12 @@ import java.util.Locale
 @Composable
 fun CreateEventScreen(
     modifier: Modifier = Modifier,
+    topBarTitle: String,
+    prefill: Event?,
+    isSaving: Boolean,
     onBackClick: () -> Unit = {},
-    onEventSaved: () -> Unit = {}
+    onSubmit: (title: String, description: String, location: String, dateMillis: Long, hour: Int, minute: Int) -> Unit,
+    onValidationError: (String) -> Unit = {},
 ) {
     var title by remember { mutableStateOf("") }
     var dateMillis by remember { mutableStateOf<Long?>(null) }
@@ -64,15 +70,49 @@ fun CreateEventScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
+    LaunchedEffect(prefill?.id) {
+        val e = prefill ?: return@LaunchedEffect
+        title = e.title
+        description = e.description
+        location = e.location
+        dateMillis = e.dateMillis
+        hour = e.timeHour
+        minute = e.timeMinute
+    }
+
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val dateText = dateMillis?.let { dateFormatter.format(Date(it)) } ?: ""
     val timeText = if (hour >= 0 && minute >= 0) "%02d:%02d".format(hour, minute) else ""
     val colors = AppTheme.colors
 
+    fun validateAndSubmit() {
+        if (title.isBlank()) {
+            onValidationError("Indica el nombre del evento")
+            return
+        }
+        if (dateMillis == null) {
+            onValidationError("Selecciona una fecha")
+            return
+        }
+        if (hour < 0 || minute < 0) {
+            onValidationError("Selecciona una hora")
+            return
+        }
+        if (location.isBlank()) {
+            onValidationError("Indica la ubicación")
+            return
+        }
+        if (description.isBlank()) {
+            onValidationError("Indica la descripción")
+            return
+        }
+        onSubmit(title.trim(), description.trim(), location.trim(), dateMillis!!, hour, minute)
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = colors.background,
-        topBar = { AppTopBar(title = "Crear evento", onBackClick = onBackClick) }
+        topBar = { AppTopBar(title = topBarTitle, onBackClick = onBackClick) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -140,8 +180,9 @@ fun CreateEventScreen(
 
             MainButton(
                 text = "Guardar evento",
-                onClick = onEventSaved,
-                leadingIcon = Icons.Outlined.Save
+                onClick = { validateAndSubmit() },
+                leadingIcon = Icons.Outlined.Save,
+                enabled = !isSaving
             )
 
             Spacer(Modifier.height(Spacing.xxl))
@@ -256,7 +297,7 @@ private fun ClickableField(
         )
         Box(
             Modifier
-                .matchParentSize()
+                .fillMaxSize()
                 .clickable { onClick() }
         )
     }

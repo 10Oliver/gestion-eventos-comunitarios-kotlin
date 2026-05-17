@@ -49,70 +49,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.SectionTitle
+import com.example.myapplicationeventoscomunitarios.events.HomeEventCardUi
 import com.example.myapplicationeventoscomunitarios.ui.theme.AppTheme
 import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-private data class EventUi(
-    val id: Int,
-    val title: String,
-    val date: String,
-    val participants: String,
-    val description: String,
-    val isUpcoming: Boolean
-)
-
-private val sampleEvents = listOf(
-    EventUi(
-        id = 1,
-        title = "Jornada de limpieza",
-        date = "24, mayo del 2026",
-        participants = "10",
-        description = "Limpieza del parque central. Llevar guantes y bolsas. Punto de reunión en la entrada principal.",
-        isUpcoming = true
-    ),
-    EventUi(
-        id = 2,
-        title = "Reunión comunitaria",
-        date = "24, mayo del 2026",
-        participants = "21",
-        description = "Reunión mensual para tratar temas de seguridad y mantenimiento del barrio.",
-        isUpcoming = false
-    ),
-    EventUi(
-        id = 3,
-        title = "Campaña de donación",
-        date = "24, mayo del 2026",
-        participants = "17",
-        description = "Recolección de ropa, alimentos y libros para las familias del sector.",
-        isUpcoming = false
-    ),
-    EventUi(
-        id = 4,
-        title = "Torneo deportivo",
-        date = "24, mayo del 2026",
-        participants = "16",
-        description = "Mini torneo de fútbol entre vecinos. Inscripciones abiertas.",
-        isUpcoming = false
-    ),
-    EventUi(
-        id = 5,
-        title = "Charla de seguridad",
-        date = "24, mayo del 2026",
-        participants = "5",
-        description = "Capacitación sobre prevención del delito y primeros auxilios.",
-        isUpcoming = false
-    )
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     userDisplayName: String = "",
+    upcomingEvents: List<HomeEventCardUi> = emptyList(),
+    pastEvents: List<HomeEventCardUi> = emptyList(),
     onCreateEventClick: () -> Unit = {},
-    onEventClick: () -> Unit = {},
+    onEventClick: (String) -> Unit = {},
     onHistoryClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
     isDarkTheme: Boolean = true,
@@ -141,7 +92,7 @@ fun HomeScreen(
             onRefresh = {
                 scope.launch {
                     isRefreshing = true
-                    delay(1200)
+                    delay(600)
                     isRefreshing = false
                 }
             },
@@ -186,13 +137,13 @@ fun HomeScreen(
 
                 item { SectionTitle("Eventos próximos") }
                 item { Spacer(Modifier.height(Spacing.md)) }
-                items(sampleEvents.filter { it.isUpcoming }, key = { it.id }) { event ->
+                items(upcomingEvents, key = { it.id }) { event ->
                     EventCard(
                         title = event.title,
-                        date = event.date,
-                        participants = event.participants,
+                        date = event.dateLabel,
+                        participants = event.participantsLabel,
                         description = event.description,
-                        onClick = onEventClick
+                        onClick = { onEventClick(event.id) }
                     )
                     Spacer(Modifier.height(Spacing.md))
                 }
@@ -201,13 +152,13 @@ fun HomeScreen(
                 item { SectionTitle("Todos los eventos") }
                 item { Spacer(Modifier.height(Spacing.md)) }
 
-                items(sampleEvents.filter { !it.isUpcoming }, key = { it.id }) { event ->
+                items(pastEvents, key = { it.id }) { event ->
                     EventCard(
                         title = event.title,
-                        date = event.date,
-                        participants = event.participants,
+                        date = event.dateLabel,
+                        participants = event.participantsLabel,
                         description = event.description,
-                        onClick = onEventClick
+                        onClick = { onEventClick(event.id) }
                     )
                     Spacer(Modifier.height(Spacing.md))
                 }
@@ -307,7 +258,7 @@ private fun QuickActionCard(
 fun EventCard(
     title: String,
     date: String,
-    participants: String,
+    participants: String?,
     description: String,
     onClick: () -> Unit
 ) {
@@ -353,19 +304,21 @@ fun EventCard(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(26.dp)
-                    .clip(CircleShape)
-                    .background(colors.background.copy(alpha = 0.25f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = participants,
-                    color = colors.onPrimary,
-                    style = MaterialTheme.typography.labelSmall
-                )
+            if (participants != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(colors.background.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = participants,
+                        color = colors.onPrimary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
     }
