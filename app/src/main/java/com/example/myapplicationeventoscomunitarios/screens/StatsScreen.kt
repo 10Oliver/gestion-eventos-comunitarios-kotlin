@@ -15,12 +15,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.HowToReg
 import androidx.compose.material.icons.outlined.StarRate
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,13 +34,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.AppTopBar
 import com.example.myapplicationeventoscomunitarios.components.SectionTitle
+import com.example.myapplicationeventoscomunitarios.events.StatsUiState
 import com.example.myapplicationeventoscomunitarios.ui.theme.AppTheme
 import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
 
 @Composable
 fun StatsScreen(
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {}
+    stats: StatsUiState,
+    onBackClick: () -> Unit = {},
+    onTopEventClick: (String) -> Unit = {},
 ) {
     val colors = AppTheme.colors
     Scaffold(
@@ -63,28 +68,44 @@ fun StatsScreen(
 
             Spacer(Modifier.height(Spacing.xxl))
 
+            if (stats.loading) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(color = colors.primary)
+                }
+                Spacer(Modifier.height(Spacing.xxl))
+            }
+
             StatCard(
                 icon = Icons.Outlined.CalendarMonth,
                 title = "Total de eventos",
-                value = "12"
+                value = stats.totalEvents.toString()
             )
             Spacer(Modifier.height(Spacing.md))
             StatCard(
                 icon = Icons.Outlined.HowToReg,
                 title = "Eventos asistidos",
-                value = "5"
+                value = stats.attendedEvents.toString()
             )
             Spacer(Modifier.height(Spacing.md))
             StatCard(
-                icon = Icons.Outlined.Groups,
-                title = "Participantes registrados",
-                value = "86"
+                icon = Icons.Outlined.ChatBubbleOutline,
+                title = "Reseñas publicadas (tuyas)",
+                value = stats.myReviewsCount.toString()
             )
             Spacer(Modifier.height(Spacing.md))
             StatCard(
                 icon = Icons.Outlined.StarRate,
-                title = "Promedio de calificación",
-                value = "4.6/5"
+                title = "Promedio de tus calificaciones",
+                value = stats.myAverageRatingText
+            )
+            Spacer(Modifier.height(Spacing.md))
+            StatCard(
+                icon = Icons.Outlined.Groups,
+                title = "Participantes registrados (total)",
+                value = stats.totalParticipantsRegistered.toString()
             )
 
             Spacer(Modifier.height(Spacing.xxxl))
@@ -102,13 +123,26 @@ fun StatsScreen(
 
             Spacer(Modifier.height(Spacing.md))
 
-            EventCard(
-                title = "Reunión comunitaria",
-                date = "24, mayo del 2026",
-                participants = "21",
-                description = "Reunión mensual para tratar temas de seguridad y mantenimiento del barrio.",
-                onClick = {}
-            )
+            val top = stats.topEventCard
+            if (top == null) {
+                Text(
+                    text = if (stats.totalEvents == 0) {
+                        "Aún no hay eventos en la comunidad."
+                    } else {
+                        "No hay datos de participación para comparar."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textMuted
+                )
+            } else {
+                EventCard(
+                    title = top.title,
+                    date = top.dateLabel,
+                    participants = top.participantsLabel,
+                    description = top.description,
+                    onClick = { onTopEventClick(top.id) }
+                )
+            }
 
             Spacer(Modifier.height(Spacing.xxl))
         }
@@ -134,7 +168,10 @@ private fun StatCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,

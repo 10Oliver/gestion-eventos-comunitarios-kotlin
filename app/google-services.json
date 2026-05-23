@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "414591906027",
+    "project_id": "geston-eventos",
+    "storage_bucket": "geston-eventos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:414591906027:android:ff769405048649588a8eae",
+        "android_client_info": {
+          "package_name": "karta.gestion.eventos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "414591906027-b427ja4h33lf9p8jhptq7712rh5duq1i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "karta.gestion.eventos",
+            "certificate_hash": "7c97cd5be542d90bb01460bb988143c27943fecd"
+          }
+        },
+        {
+          "client_id": "414591906027-1hcc1mlqdsnisrae4jpiqpcjd3gl87ag.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDItb5rv45RT0t_vJHWcxoRtXYGWTnrRN4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "414591906027-1hcc1mlqdsnisrae4jpiqpcjd3gl87ag.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

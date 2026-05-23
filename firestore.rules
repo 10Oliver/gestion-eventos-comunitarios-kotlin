@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isEventOwner() {
+      return signedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    function participantDocExists(eventId, uid) {
+      return exists(/databases/$(database)/documents/events/$(eventId)/participants/$(uid));
+    }
+
+    match /events/{eventId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isEventOwner();
+
+      match /participants/{uid} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.participantUid == request.auth.uid;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      match /reviews/{uid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && participantDocExists(eventId, uid)
+          && request.resource.data.reviewerUid == request.auth.uid;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+    }
+  }
+}

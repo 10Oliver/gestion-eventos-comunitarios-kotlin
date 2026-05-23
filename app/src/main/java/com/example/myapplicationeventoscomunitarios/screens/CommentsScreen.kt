@@ -13,12 +13,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,37 +29,54 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.AppTextField
 import com.example.myapplicationeventoscomunitarios.components.AppTopBar
 import com.example.myapplicationeventoscomunitarios.components.MainButton
+import com.example.myapplicationeventoscomunitarios.components.SecondaryButton
 import com.example.myapplicationeventoscomunitarios.components.StarRating
 import com.example.myapplicationeventoscomunitarios.components.StarRatingReadOnly
+import com.example.myapplicationeventoscomunitarios.events.EventReview
 import com.example.myapplicationeventoscomunitarios.ui.theme.AppTheme
 import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
-
-private data class CommentUi(val user: String, val rating: Int, val text: String)
-
-private val sampleComments = listOf(
-    CommentUi("Usuario 1", 5, "Muy buena actividad, estuvo bien organizada."),
-    CommentUi("Usuario 2", 4, "Me gustó el evento, sería bueno agregar más horarios.")
-)
 
 @Composable
 fun CommentsScreen(
     modifier: Modifier = Modifier,
+    eventTitle: String,
+    hasParticipated: Boolean,
+    myReview: EventReview?,
+    reviews: List<EventReview>,
+    isPublishing: Boolean,
     onBackClick: () -> Unit = {},
-    onCommentSaved: () -> Unit = {}
+    onSubmitReview: (text: String, rating: Int, onSuccess: () -> Unit) -> Unit,
+    onDeleteReview: (onSuccess: () -> Unit) -> Unit,
+    onValidationError: (String) -> Unit = {},
 ) {
     var comment by remember { mutableStateOf("") }
     var rating by remember { mutableIntStateOf(5) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
+    val topTitle = eventTitle.ifBlank { "Comentarios" }
+    val hasExistingReview = myReview != null
+
+    LaunchedEffect(myReview?.uid, myReview?.updatedAtMillis, myReview?.text, myReview?.rating) {
+        val r = myReview
+        if (r != null) {
+            comment = r.text
+            rating = r.rating
+        } else {
+            comment = ""
+            rating = 5
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = colors.background,
         topBar = {
-            AppTopBar(title = "Comentarios", onBackClick = onBackClick)
+            AppTopBar(title = topTitle, onBackClick = onBackClick)
         }
     ) { padding ->
         Column(
@@ -69,7 +89,11 @@ fun CommentsScreen(
             Spacer(Modifier.height(Spacing.lg))
 
             Text(
-                text = "Califica el evento y deja tu opinión",
+                text = if (hasExistingReview) {
+                    "Edita o elimina tu calificación y comentario."
+                } else {
+                    "Califica el evento y deja tu opinión"
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.textSecondary
             )
@@ -86,7 +110,8 @@ fun CommentsScreen(
 
             StarRating(
                 rating = rating,
-                onRatingChange = { rating = it }
+                onRatingChange = { rating = it },
+                enabled = hasParticipated && !isPublishing
             )
 
             Spacer(Modifier.height(Spacing.xxl))
@@ -96,19 +121,76 @@ fun CommentsScreen(
                 onValueChange = { comment = it },
                 label = "Escribe tu comentario",
                 modifier = Modifier.height(130.dp),
-                singleLine = false
+                singleLine = false,
+                enabled = hasParticipated && !isPublishing
             )
 
             Spacer(Modifier.height(Spacing.xxl))
 
             MainButton(
-                text = "Publicar comentario",
+                text = if (hasExistingReview) "Actualizar comentario" else "Publicar comentario",
                 onClick = {
-                    onCommentSaved()
-                    comment = ""
+                    if (!hasParticipated) {
+                        onValidationError("Solo pueden comentar quienes marcaron participación")
+                        return@MainButton
+                    }
+                    if (comment.isBlank()) {
+                        onValidationError("Escribe un comentario")
+                        return@MainButton
+                    }
+                    onSubmitReview(comment.trim(), rating) { }
                 },
-                leadingIcon = Icons.AutoMirrored.Outlined.Send
+                leadingIcon = Icons.AutoMirrored.Outlined.Send,
+                enabled = hasParticipated && !isPublishing
             )
+
+            if (hasParticipated && hasExistingReview) {
+                Spacer(Modifier.height(Spacing.md))
+                SecondaryButton(
+                    text = "Eliminar mi comentario",
+                    onClick = { showDeleteDialog = true },
+                    enabled = !isPublishing
+                )
+            }
+
+            if (!hasParticipated) {
+                Spacer(Modifier.height(Spacing.md))
+                Text(
+                    text = "Debes haber marcado tu participación en el detalle del evento para publicar aquí.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text("Eliminar comentario", color = colors.textPrimary) },
+                    text = {
+                        Text(
+                            "¿Eliminar tu calificación y comentario? Podrás publicar uno nuevo después.",
+                            color = colors.textSecondary
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteDialog = false
+                                onDeleteReview { }
+                            },
+                            enabled = !isPublishing
+                        ) { Text("Eliminar", color = colors.primary) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("Cancelar", color = colors.textSecondary)
+                        }
+                    },
+                    containerColor = colors.surface
+                )
+            }
 
             Spacer(Modifier.height(Spacing.xxxl))
 
@@ -120,9 +202,17 @@ fun CommentsScreen(
 
             Spacer(Modifier.height(Spacing.md))
 
-            sampleComments.forEach { c ->
-                CommentItem(user = c.user, rating = c.rating, text = c.text)
-                Spacer(Modifier.height(Spacing.md))
+            if (reviews.isEmpty()) {
+                Text(
+                    text = "Aún no hay comentarios.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary
+                )
+            } else {
+                reviews.forEach { c ->
+                    CommentItem(user = c.authorName, rating = c.rating, text = c.text)
+                    Spacer(Modifier.height(Spacing.md))
+                }
             }
 
             Spacer(Modifier.height(Spacing.xxl))
