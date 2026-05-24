@@ -35,7 +35,7 @@ fun EventCardSkeleton(modifier: Modifier = Modifier) {
         initialValue = 0.3f,
         targetValue = 0.7f,
         animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
+            animation = tween(1200, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "shimmer-alpha"
@@ -43,11 +43,11 @@ fun EventCardSkeleton(modifier: Modifier = Modifier) {
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant.copy(alpha = alpha))
     ) {
         Column(Modifier.padding(Spacing.lg)) {
-            ShimmerBar(width = 200.dp, height = 18.dp, baseColor = colors.textPrimary, alpha = alpha)
+            ShimmerBar(width = 220.dp, height = 18.dp, baseColor = colors.textPrimary, alpha = alpha)
             Spacer(Modifier.height(Spacing.sm))
             ShimmerBar(width = 120.dp, height = 12.dp, baseColor = colors.textPrimary, alpha = alpha)
             Spacer(Modifier.height(Spacing.sm))
