@@ -45,9 +45,12 @@ fun EmptyState(
         Spacer(Modifier.height(Spacing.lg))
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = colors.textPrimary,
             textAlign = TextAlign.Center
+
+
+
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
