@@ -1,13 +1,19 @@
 # Aplicación de Gestión de Eventos Comunitarios
 
 ## 👥 Autores y Desarrolladores
-Este proyecto fue creado por:
+Este proyecto fue creado por el equipo **G01T**:
 
 * **Alan Anderson Vásquez Leiva** - VL221407
 * **Kelly Abigail Vázquez Rodríguez** - VR220916
 * **Guillermo Salvador Cartagena Mejia** - CM213015
 * **Oliver Alejandro Erazo Reyes** - ER231663
 * **Julio César Posada Ramírez** - PR222058
+
+---
+
+## 🎨 Diseño (Bocetos)
+Puedes ver los bocetos y el diseño de la interfaz en Figma a través del siguiente enlace:
+[Bocetos en Figma](https://www.figma.com/design/ZTESHA1llYZoeWZWbGKI2c/Aplicaci%C3%B3n-de-Gesti%C3%B3n-de-Eventos-Comunitarios?node-id=0-1&t=kpGZzS9aO2YpgRBS-1)
 
 ---
 
