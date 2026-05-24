@@ -1,5 +1,6 @@
 package com.example.myapplicationeventoscomunitarios.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Badge
@@ -37,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.myapplicationeventoscomunitarios.components.AppTextField
 import com.example.myapplicationeventoscomunitarios.components.MainButton
@@ -47,7 +50,10 @@ import com.example.myapplicationeventoscomunitarios.ui.theme.Spacing
 fun RegisterScreen(
     modifier: Modifier = Modifier,
     onBackToLoginClick: () -> Unit = {},
-    onRegisterSuccess: () -> Unit = {}
+    onRegisterSubmit: (fullName: String, email: String, password: String) -> Unit = { _, _, _ -> },
+    onGoogleSignInClick: () -> Unit = {},
+    isAuthBusy: Boolean = false,
+    onValidationError: (String) -> Unit = {},
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -86,7 +92,8 @@ fun RegisterScreen(
             value = name,
             onValueChange = { name = it },
             label = "Nombre completo",
-            leadingIcon = Icons.Outlined.Badge
+            leadingIcon = Icons.Outlined.Badge,
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -95,7 +102,9 @@ fun RegisterScreen(
             value = email,
             onValueChange = { email = it },
             label = "Correo electrónico",
-            leadingIcon = Icons.Outlined.AlternateEmail
+            leadingIcon = Icons.Outlined.AlternateEmail,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -105,7 +114,8 @@ fun RegisterScreen(
             onValueChange = { password = it },
             label = "Contraseña",
             isPassword = true,
-            leadingIcon = Icons.Outlined.Lock
+            leadingIcon = Icons.Outlined.Lock,
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -115,15 +125,33 @@ fun RegisterScreen(
             onValueChange = { confirmPassword = it },
             label = "Confirmar contraseña",
             isPassword = true,
-            leadingIcon = Icons.Outlined.LockReset
+            leadingIcon = Icons.Outlined.LockReset,
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.xxxl))
 
         MainButton(
             text = "Registrarme",
-            onClick = onRegisterSuccess,
-            leadingIcon = Icons.Outlined.HowToReg
+            onClick = {
+                val trimmedName = name.trim()
+                val trimmedEmail = email.trim()
+                when {
+                    trimmedName.isBlank() ->
+                        onValidationError("Ingresa tu nombre completo.")
+                    trimmedEmail.isBlank() ->
+                        onValidationError("Ingresa tu correo electrónico.")
+                    !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() ->
+                        onValidationError("El correo electrónico no es válido.")
+                    password.length < 6 ->
+                        onValidationError("La contraseña debe tener al menos 6 caracteres.")
+                    password != confirmPassword ->
+                        onValidationError("Las contraseñas no coinciden.")
+                    else -> onRegisterSubmit(trimmedName, trimmedEmail, password)
+                }
+            },
+            leadingIcon = Icons.Outlined.HowToReg,
+            enabled = !isAuthBusy
         )
 
         Spacer(Modifier.height(Spacing.sm))
@@ -138,7 +166,7 @@ fun RegisterScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textSecondary
             )
-            TextButton(onClick = onBackToLoginClick) {
+            TextButton(onClick = onBackToLoginClick, enabled = !isAuthBusy) {
                 Text(
                     text = "Inicia sesión",
                     style = MaterialTheme.typography.bodyMedium,
@@ -169,7 +197,8 @@ fun RegisterScreen(
                 background = Color.White,
                 contentColor = Color(0xFF4285F4),
                 contentDescription = "Continuar con Google",
-                onClick = {}
+                onClick = onGoogleSignInClick,
+                enabled = !isAuthBusy
             )
             Spacer(Modifier.size(Spacing.lg))
             SocialButton(
@@ -178,7 +207,8 @@ fun RegisterScreen(
                 contentColor = Color.White,
                 contentDescription = "Continuar con X",
                 bordered = true,
-                onClick = {}
+                onClick = {},
+                enabled = !isAuthBusy
             )
         }
 
@@ -193,7 +223,8 @@ private fun SocialButton(
     contentColor: Color,
     contentDescription: String,
     onClick: () -> Unit,
-    bordered: Boolean = false
+    bordered: Boolean = false,
+    enabled: Boolean = true
 ) {
     val borderColor = AppTheme.colors.divider
     Box(
@@ -202,7 +233,12 @@ private fun SocialButton(
             .clip(RoundedCornerShape(10.dp))
             .background(background)
             .then(if (bordered) Modifier.border(1.dp, borderColor, RoundedCornerShape(10.dp)) else Modifier)
-            .clickable(role = Role.Button, onClickLabel = contentDescription, onClick = onClick),
+            .clickable(
+                role = Role.Button,
+                onClickLabel = contentDescription,
+                enabled = enabled,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(

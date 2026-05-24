@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">My Application EventosComunitarios</string>
+    <!-- Cliente OAuth tipo "Web" (Firebase → Authentication → Google, o google-services.json → oauth_client client_type 3). Necesario para requestIdToken. -->
+    <string name="default_web_client_id" translatable="false">REEMPLAZA_CON_TU_WEB_CLIENT_ID.apps.googleusercontent.com</string>
 </resources>
