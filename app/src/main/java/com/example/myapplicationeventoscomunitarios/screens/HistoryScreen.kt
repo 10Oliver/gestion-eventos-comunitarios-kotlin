@@ -65,7 +65,7 @@ fun HistoryScreen(
 
             Spacer(Modifier.height(Spacing.xxl))
 
-            SectionTitle("Próximas asistencias")
+            SectionTitle("Eventos próximos")
 
             Spacer(Modifier.height(Spacing.md))
 
@@ -98,7 +98,7 @@ fun HistoryScreen(
 
             SectionTitle("Asistencias pasadas")
 
-            Spacer(Modifier.height(Spacing.md))
+            Spacer(Modifier.height(Spacing.lg))
 
             if (!isSignedIn) {
                 Spacer(Modifier.height(Spacing.xs))
@@ -138,7 +138,7 @@ private fun HistoryItem(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
     ) {
         Row(
@@ -151,7 +151,7 @@ private fun HistoryItem(
                 imageVector = Icons.Outlined.EventAvailable,
                 contentDescription = null,
                 tint = colors.primary,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(32.dp)
             )
 
             Spacer(Modifier.width(Spacing.lg))
