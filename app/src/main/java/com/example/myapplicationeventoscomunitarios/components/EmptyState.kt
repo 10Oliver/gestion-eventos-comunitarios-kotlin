@@ -40,7 +40,7 @@ fun EmptyState(
             imageVector = icon,
             contentDescription = null,
             tint = colors.textMuted,
-            modifier = Modifier.size(64.dp)
+            modifier = Modifier.size(80.dp)
         )
         Spacer(Modifier.height(Spacing.lg))
         Text(
@@ -51,10 +51,10 @@ fun EmptyState(
         )
         Spacer(Modifier.height(Spacing.sm))
         Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
+            text = message, style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Justify
         )
+
     }
 }
